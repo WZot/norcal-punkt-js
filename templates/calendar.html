@@ -331,7 +331,8 @@
       </section>
 
       {# ── Notable dates ─────────────────────────────── #}
-      <section class="notable-section p-size-24 p-size-32--tablet-up mx-size-16 mx-size-32--tablet-up mb-size-32">
+      <section class="pkt-container pb-size-32">
+        <div class="notable-section p-size-24 p-size-32--tablet-up">
         <h2 class="notable-heading pkt-txt-20-medium pkt-txt-24-medium--tablet-up mb-size-16">Merkedager {{ year }}</h2>
         <div class="notable-columns pkt-txt-14">
           {% for col in notable_columns %}
@@ -348,6 +349,7 @@
           </div>
           {% endfor %}
         </div>
+        </div>
       </section>
 
       <div class="pkt-txt-center mb-size-32">
@@ -359,17 +361,30 @@
   </div>
 
   <script>
-    function toggleDark() {
-      const body = document.body;
-      const isDark = body.getAttribute('data-mode') === 'dark';
-      if (isDark) {
-        body.removeAttribute('data-mode');
-        document.getElementById('theme-toggle').textContent = 'mørk modus';
-      } else {
-        body.setAttribute('data-mode', 'dark');
+    function applyTheme(dark) {
+      if (dark) {
+        document.body.setAttribute('data-mode', 'dark');
         document.getElementById('theme-toggle').textContent = 'lys modus';
+      } else {
+        document.body.removeAttribute('data-mode');
+        document.getElementById('theme-toggle').textContent = 'mørk modus';
       }
     }
+
+    function toggleDark() {
+      var isDark = document.body.getAttribute('data-mode') === 'dark';
+      location.hash = isDark ? 'light' : 'dark';
+    }
+
+    function readHash() {
+      var hash = location.hash.replace('#', '');
+      if (hash === 'dark' || hash === 'light') {
+        applyTheme(hash === 'dark');
+      }
+    }
+
+    readHash();
+    window.addEventListener('hashchange', readHash);
   </script>
 </body>
 </html>
