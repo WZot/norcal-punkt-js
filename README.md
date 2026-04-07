@@ -1,61 +1,35 @@
 # norcal
 
-A local Norwegian desktop calendar.
+A Norwegian calendar for the web, styled with [Punkt](https://punkt.oslo.kommune.no/) (Oslo kommune design system).
 
-![norcal screenshot](screenshot.png)
-
-## Install
-
-First, install the Tcl/Tk system libraries:
-
-```bash
-# Debian/Ubuntu
-sudo apt install libtk8.6 tk8.6-dev tcl8.6-dev
-
-# Fedora
-sudo dnf install tk-devel tcl-devel
-
-# macOS
-brew install tcl-tk
-```
-
-### From RubyGems
-
-```
-gem install norcal
-```
-
-### From source
-
-```bash
-git clone https://github.com/baosen/norcal.git
-cd norcal
-gem build norcal.gemspec
-gem install norcal-1.4.0.gem
-```
-
-## Usage
-
-```
-norcal              # current year, dark mode
-norcal 2026         # specific year
-norcal --light      # light mode
-norcal --light 2026 # light mode, specific year
-```
+Deployed to GitHub Pages and rebuilt daily to keep "today" highlighted.
 
 ## Features
 
 - 12-month grid (4x3) with Norwegian month and day names
 - ISO week numbers, Monday-first weeks
-- Sundays and public holidays in red, Saturdays in gray
+- Sundays and public holidays in red, Saturdays muted
 - Easter-based movable holidays (Computus algorithm)
 - Notable dates: royal birthdays, Samefolkets dag, Morsdag, Farsdag, solverv, sommertid, advent, and more
-- Filter to show only red days (public holidays)
-- Today highlighted with yellow background
-- Dark mode (default) and light mode, with toggle button
-- Zoom in/out (`+`/`–` buttons, Ctrl+scroll, Ctrl++/Ctrl+-)
-- Auto-fit to screen height on startup, with `fit` button
-- Scrollbar for zoomed-in views
+- Today highlighted
+- Dark/light mode toggle
+- Responsive layout (stacks on mobile)
+
+## How it works
+
+A Python script (`generate.py`) computes all calendar data and renders a Jinja2 template into a static `index.html`. GitHub Actions builds and deploys to GitHub Pages on every push and daily at 01:00 UTC.
+
+## Local development
+
+```bash
+uv run --with jinja2 python generate.py        # current year
+uv run --with jinja2 python generate.py 2025   # specific year
+open dist/index.html
+```
+
+## Based on
+
+Forked from [baosen/norcal](https://github.com/baosen/norcal), a Ruby/Tk desktop calendar.
 
 ## License
 
