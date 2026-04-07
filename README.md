@@ -4,6 +4,10 @@ A Norwegian calendar for the web, styled with [Punkt](https://punkt.oslo.kommune
 
 Deployed to GitHub Pages and rebuilt daily to keep "today" highlighted.
 
+**[View live](https://falense.github.io/norcal-punkt/)** · [Dark mode](https://falense.github.io/norcal-punkt/#dark)
+
+![Screenshot](screenshot.png)
+
 ## Features
 
 - 12-month grid (4x3) with Norwegian month and day names
