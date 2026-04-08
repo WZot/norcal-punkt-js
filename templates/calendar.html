@@ -112,6 +112,10 @@
       border-radius: 3px;
     }
 
+    .cal-grid > span:empty::after {
+      content: '\200b';
+    }
+
     .cal-wk {
       color: var(--pkt-color-brand-dark-blue-700);
       font-size: 0.7em;
@@ -144,6 +148,15 @@
     [data-mode="dark"] .cal-sat {
       color: var(--pkt-color-brand-blue-500);
       opacity: 0.5;
+    }
+
+    .cal-half {
+      color: #b35c00;
+      font-weight: 500;
+    }
+
+    [data-mode="dark"] .cal-half {
+      color: var(--pkt-color-brand-yellow-1000);
     }
 
     .cal-today {
@@ -257,6 +270,14 @@
       color: var(--pkt-color-brand-red-600);
     }
 
+    .notable-date.cal-half {
+      color: #b35c00;
+    }
+
+    [data-mode="dark"] .notable-date.cal-half {
+      color: var(--pkt-color-brand-yellow-1000);
+    }
+
     .notable-desc {
       color: rgba(255, 255, 255, 0.6);
     }
@@ -315,7 +336,7 @@
                   <span class="cal-wk">{{ week.number }}</span>
                   {% for day in week.days %}
                   {% if day %}
-                  <span class="cal-day-wrap{% if day.is_today %} cal-today{% elif day.is_red %} cal-red{% elif day.is_sat %} cal-sat{% endif %}"{% if day.tooltip %} data-tooltip="{{ day.tooltip }}"{% endif %}>{{ day.day }}</span>
+                  <span class="cal-day-wrap{% if day.is_today %} cal-today{% elif day.is_red %} cal-red{% elif day.is_half %} cal-half{% elif day.is_sat %} cal-sat{% endif %}"{% if day.tooltip %} data-tooltip="{{ day.tooltip }}"{% endif %}>{{ day.day }}</span>
                   {% else %}
                   <span></span>
                   {% endif %}
@@ -340,10 +361,10 @@
           <div class="notable-divider"></div>
           {% endif %}
           <div class="notable-col">
-            {% for d, desc, is_red in col %}
+            {% for d, desc, is_red, is_half in col %}
             <div class="notable-entry">
-              <span class="notable-date{% if is_red %} cal-red{% endif %}">{{ d.day }}. {{ mabbr_no[d.month - 1] }}</span>
-              <span class="notable-desc">{{ desc }}</span>
+              <span class="notable-date{% if is_red %} cal-red{% elif is_half %} cal-half{% endif %}">{{ d.day }}. {{ mabbr_no[d.month - 1] }}</span>
+              <span class="notable-desc">{{ desc }}{% if is_half %} (halv dag){% endif %}</span>
             </div>
             {% endfor %}
           </div>

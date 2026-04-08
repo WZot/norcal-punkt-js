@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["jinja2"]
+# ///
 """Generate a static Norwegian calendar page styled with Punkt CSS."""
 
 import argparse
@@ -74,10 +78,24 @@ def red_days(year: int) -> dict[date, str]:
     }
 
 
-def notable_dates(year: int) -> list[tuple[date, str, bool]]:
-    """Notable dates: (date, description, show_date_in_red?)."""
+def half_days(year: int) -> dict[date, str]:
+    """Half days (fri fra kl. 12) per HTA for stat/KS-kommune.
+
+    Pinseaften (easter+48) is always a Saturday so irrelevant for day workers.
+    """
+    e = easter(year)
+    return {
+        e - timedelta(4):   "Onsdag før skjærtorsdag",
+        date(year, 12, 24): "Julaften",
+        date(year, 12, 31): "Nyttårsaften",
+    }
+
+
+def notable_dates(year: int) -> list[tuple[date, str, bool, bool]]:
+    """Notable dates: (date, description, show_date_in_red?, is_half_day?)."""
     e = easter(year)
     holidays = red_days(year)
+    halfs = half_days(year)
 
     morsdag = nth_wday(year, 2, 7, 2)
     farsdag = nth_wday(year, 11, 7, 2)
@@ -93,10 +111,11 @@ def notable_dates(year: int) -> list[tuple[date, str, bool]]:
         date(year, 5, 17): "Grunnlovsdagen 1814",
     }
 
-    entries = [(d, notable_names.get(d, name), True) for d, name in holidays.items()]
+    entries = [(d, notable_names.get(d, name), True, d in halfs)
+               for d, name in holidays.items()]
 
     # Red-in-list but not a public holiday
-    entries.append((e - timedelta(7), "Palmesøndag", True))
+    entries.append((e - timedelta(7), "Palmesøndag", True, False))
 
     # Non-red notable dates
     non_red = [
@@ -109,6 +128,7 @@ def notable_dates(year: int) -> list[tuple[date, str, bool]]:
         (date(year, 3, 8),   "Kvinnedagen"),
         (date(year, 3, 20),  "Vårjevndøgn"),
         (sommer_start,        "Sommertid start"),
+        (e - timedelta(4),   "Onsdag før skjærtorsdag"),
         (e - timedelta(1),   "Påskeaften"),
         (date(year, 5, 8),   "Frigjøringsdagen 1945"),
         (e + timedelta(48),  "Pinseaften"),
@@ -134,15 +154,26 @@ def notable_dates(year: int) -> list[tuple[date, str, bool]]:
         (date(year, 12, 24), "Julaften"),
         (date(year, 12, 31), "Nyttårsaften"),
     ]
-    entries.extend((d, name, False) for d, name in non_red)
+    entries.extend((d, name, False, d in halfs) for d, name in non_red)
 
-    return sorted(entries, key=lambda x: x[0])
+    # Merge entries that fall on the same date
+    merged: dict[date, tuple[list[str], bool, bool]] = {}
+    for d, name, is_red, is_half in sorted(entries, key=lambda x: x[0]):
+        if d in merged:
+            merged[d][0].append(name)
+            merged[d] = (merged[d][0], merged[d][1] or is_red, merged[d][2] or is_half)
+        else:
+            merged[d] = ([name], is_red, is_half)
+
+    return [(d, " / ".join(names), is_red, is_half)
+            for d, (names, is_red, is_half) in merged.items()]
 
 
 # -- Calendar grid builder ----------------------------------------------------
 
 def build_month(year: int, month: int, holidays: dict[date, str],
-                notable: dict[date, str], today: date):
+                notable: dict[date, str], halfs: dict[date, str],
+                today: date):
     """Build a month's data for the template."""
     first = date(year, month, 1)
     if month == 12:
@@ -162,12 +193,16 @@ def build_month(year: int, month: int, holidays: dict[date, str],
             if day.month == month and day.year == year:
                 is_red = day.isoweekday() == 7 or day in holidays
                 is_sat = day.isoweekday() == 6 and day not in holidays
+                is_half = day in halfs
                 is_today = day == today
                 tooltip = holidays.get(day) or notable.get(day) or ""
+                if is_half:
+                    tooltip = f"{tooltip} (halv dag)" if tooltip else "Halv dag"
                 week["days"].append({
                     "day": day.day,
                     "is_red": is_red,
                     "is_sat": is_sat,
+                    "is_half": is_half,
                     "is_today": is_today,
                     "tooltip": tooltip,
                 })
@@ -189,10 +224,11 @@ def build_month(year: int, month: int, holidays: dict[date, str],
 def build_calendar(year: int):
     """Build all data needed for the template."""
     holidays = red_days(year)
+    halfs = half_days(year)
     today = date.today()
     all_notable = notable_dates(year)
-    notable_lookup = {d: name for d, name, _ in all_notable}
-    months = [build_month(year, m + 1, holidays, notable_lookup, today)
+    notable_lookup = {d: name for d, name, _, _ in all_notable}
+    months = [build_month(year, m + 1, holidays, notable_lookup, halfs, today)
               for m in range(12)]
 
     third = max(math.ceil(len(all_notable) / 3), 1)
