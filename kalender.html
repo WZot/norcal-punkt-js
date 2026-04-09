@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalender</title>
+  <link href="https://punkt-cdn.oslo.kommune.no/latest/css/pkt.min.css" rel="stylesheet">
+  <style>
+    /* ── Hero header ─────────────────────────────────── */
+    .cal-hero {
+      background-color: var(--pkt-color-brand-dark-blue-1000);
+      color: var(--pkt-color-brand-neutrals-white);
+      text-align: center;
+    }
+
+    [data-mode="dark"] .cal-hero {
+      background-color: #1a1840;
+    }
+
+    .cal-hero h1 {
+      letter-spacing: 0.04em;
+    }
+
+    .cal-hero .cal-subtitle {
+      color: var(--pkt-color-brand-blue-1000);
+    }
+
+    /* ── Year navigation ─────────────────────────────── */
+    .year-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    /* ── Toggle / nav buttons ────────────────────────── */
+    .toggle-btn,
+    .year-nav-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      padding: 0.25rem 0.75rem;
+      color: var(--pkt-color-brand-blue-300);
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .toggle-btn:hover,
+    .year-nav-btn:hover {
+      border-color: var(--pkt-color-brand-blue-1000);
+      color: var(--pkt-color-brand-blue-1000);
+    }
+
+    .year-nav-btn,
+    .toggle-btn {
+      opacity: 0;
+      transition: border-color 0.15s, color 0.15s, opacity 0.15s;
+    }
+
+    .year-nav-btn {
+      font-size: 1.1rem;
+      padding: 0.15rem 0.65rem;
+    }
+
+    .cal-hero:hover .year-nav-btn,
+    .cal-hero:hover .toggle-btn,
+    .cal-hero.touch-active .year-nav-btn,
+    .cal-hero.touch-active .toggle-btn {
+      opacity: 1;
+    }
+
+    /* ── Inline year editor ──────────────────────────── */
+    .year-label {
+      cursor: text;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.15s;
+      padding-bottom: 2px;
+    }
+
+    .year-label:hover {
+      border-bottom-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .year-input {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid var(--pkt-color-brand-blue-300);
+      color: inherit;
+      font: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      letter-spacing: inherit;
+      text-align: center;
+      width: 5ch;
+      outline: none;
+      padding-bottom: 2px;
+    }
+
+    /* ── Quarter sections ────────────────────────────── */
+    .cal-quarter {
+      border-radius: 8px;
+    }
+
+    .cal-quarter--q1 { background-color: var(--pkt-color-brand-blue-100); }
+    .cal-quarter--q2 { background-color: var(--pkt-color-brand-light-green-400); }
+    .cal-quarter--q3 { background-color: var(--pkt-color-brand-yellow-500); }
+    .cal-quarter--q4 { background-color: var(--pkt-color-brand-red-100); }
+
+    [data-mode="dark"] .cal-quarter--q1 { background-color: rgba(111, 233, 255, 0.08); }
+    [data-mode="dark"] .cal-quarter--q2 { background-color: rgba(67, 248, 182, 0.08); }
+    [data-mode="dark"] .cal-quarter--q3 { background-color: rgba(249, 198, 107, 0.08); }
+    [data-mode="dark"] .cal-quarter--q4 { background-color: rgba(255, 130, 116, 0.08); }
+
+    .cal-quarter-label {
+      color: var(--pkt-color-brand-dark-blue-700);
+    }
+
+    [data-mode="dark"] .cal-quarter-label {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ── Month card ──────────────────────────────────── */
+    .cal-month {
+      background-color: var(--pkt-color-brand-neutrals-white);
+      border: 1px solid var(--pkt-color-brand-blue-200);
+      border-radius: 6px;
+      padding: 0.75rem;
+      transition: box-shadow 0.15s;
+    }
+
+    .cal-month:hover {
+      box-shadow: 0 2px 8px rgba(42, 40, 89, 0.08);
+    }
+
+    [data-mode="dark"] .cal-month {
+      background-color: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    [data-mode="dark"] .cal-month:hover {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .cal-month-name {
+      color: var(--pkt-color-brand-dark-blue-1000);
+      border-bottom: 2px solid var(--pkt-color-brand-blue-1000);
+      display: inline-block;
+    }
+
+    [data-mode="dark"] .cal-month-name {
+      color: var(--pkt-color-brand-blue-1000);
+      border-color: var(--pkt-color-brand-blue-1000);
+    }
+
+    /* ── Calendar grid ───────────────────────────────── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: auto repeat(7, 1fr);
+      gap: 1px 0;
+      text-align: right;
+    }
+
+    .cal-grid > span {
+      padding: 2px 4px;
+      min-width: 1.6em;
+      border-radius: 3px;
+    }
+
+    .cal-wk {
+      color: var(--pkt-color-brand-dark-blue-700);
+      font-size: 0.7em;
+      opacity: 0.4;
+    }
+
+    [data-mode="dark"] .cal-wk {
+      color: rgba(255, 255, 255, 0.25);
+      opacity: 1;
+    }
+
+    .cal-day-header {
+      font-weight: 500;
+      color: var(--pkt-color-brand-dark-blue-700);
+    }
+
+    [data-mode="dark"] .cal-day-header {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .cal-red {
+      color: var(--pkt-color-brand-red-1000);
+      font-weight: 500;
+    }
+
+    .cal-sat {
+      color: var(--pkt-color-brand-dark-blue-700);
+    }
+
+    [data-mode="dark"] .cal-sat {
+      color: var(--pkt-color-brand-blue-500);
+      opacity: 0.5;
+    }
+
+    .cal-pre-holiday {
+      position: relative;
+    }
+
+    .pre-dot {
+      position: relative;
+      display: inline-block;
+      padding-left: 7px;
+    }
+
+    .pre-dot::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: var(--pkt-color-brand-red-1000);
+      pointer-events: none;
+    }
+
+    [data-mode="dark"] .pre-dot::before {
+      background-color: var(--pkt-color-brand-red-400);
+    }
+
+    .cal-today {
+      background-color: var(--pkt-color-brand-dark-blue-1000);
+      color: var(--pkt-color-brand-neutrals-white) !important;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+
+    [data-mode="dark"] .cal-today {
+      background-color: var(--pkt-color-brand-green-1000);
+      color: var(--pkt-color-brand-dark-blue-1000) !important;
+    }
+
+    /* ── Day tooltip ─────────────────────────────────── */
+    .cal-day-wrap {
+      position: relative;
+      cursor: default;
+    }
+
+    .cal-day-wrap[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--pkt-color-brand-dark-blue-1000);
+      color: var(--pkt-color-brand-neutrals-white);
+      font-size: 0.7rem;
+      font-weight: 400;
+      line-height: 1.3;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    [data-mode="dark"] .cal-day-wrap[data-tooltip]:hover::after {
+      background-color: var(--pkt-color-brand-blue-1000);
+      color: var(--pkt-color-brand-dark-blue-1000);
+    }
+
+    /* ── Notable dates ───────────────────────────────── */
+    .notable-section {
+      background-color: var(--pkt-color-brand-dark-blue-1000);
+      color: var(--pkt-color-brand-neutrals-white);
+      border-radius: 8px;
+    }
+
+    [data-mode="dark"] .notable-section {
+      background-color: #1a1840;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .notable-heading {
+      color: var(--pkt-color-brand-blue-1000);
+    }
+
+    .notable-columns {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+
+    @media (min-width: 48rem) {
+      .notable-columns {
+        grid-template-columns: 1fr 1px 1fr 1px 1fr;
+        gap: 1.5rem;
+      }
+    }
+
+    .notable-divider {
+      display: none;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    @media (min-width: 48rem) {
+      .notable-divider {
+        display: block;
+      }
+    }
+
+    .notable-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .notable-entry {
+      display: flex;
+      gap: 0.75rem;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: background-color 0.1s;
+    }
+
+    .notable-entry:hover {
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .notable-date {
+      flex-shrink: 0;
+      width: 4.5em;
+      text-align: right;
+      font-weight: 500;
+      color: var(--pkt-color-brand-blue-300);
+    }
+
+    .notable-date.cal-red {
+      color: var(--pkt-color-brand-red-600);
+    }
+
+    .notable-desc {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* ── Footer ──────────────────────────────────────── */
+    .cal-footer {
+      color: var(--pkt-color-brand-dark-blue-700);
+    }
+
+    [data-mode="dark"] .cal-footer {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* ── Dark mode body ──────────────────────────────── */
+    [data-mode="dark"] body,
+    body[data-mode="dark"] {
+      background-color: #111029;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* ── Print ───────────────────────────────────────── */
+    @media print {
+      @page { size: A4 landscape; margin: 4mm; }
+
+      .year-nav-btn, .toggle-btn { display: none; }
+
+      /* Preserve background colours */
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      body, .pkt-layout, main { margin: 0; padding: 0; overflow: hidden; }
+
+      /* ── Hero ── */
+      .cal-hero { padding: 1mm 0 1mm !important; }
+      .year-nav { gap: 0 !important; }
+      .cal-hero h1 { font-size: 11pt !important; margin: 0 !important; }
+      .cal-hero .cal-subtitle { font-size: 6pt !important; margin: 0 !important; }
+
+      /* ── No today highlight in print ── */
+      .cal-today {
+        background-color: transparent !important;
+        color: inherit !important;
+        font-weight: normal !important;
+      }
+
+      /* ── Quarters container: 2×2 grid ── */
+      #quarters-section {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1.5mm !important;
+        padding: 1.5mm !important;
+      }
+
+      /* ── Each quarter: label on top, then 3 months in a row ── */
+      .cal-quarter {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1mm !important;
+        padding: 1.5mm !important;
+        margin: 0 !important;
+        border-radius: 2px;
+      }
+
+      .cal-quarter-label {
+        font-size: 6pt !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* 3 months side-by-side, overriding pkt-grid */
+      .cal-quarter .pkt-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 1mm !important;
+        width: 100% !important;
+      }
+
+      /* Override pkt-cell span classes */
+      .cal-quarter .pkt-cell {
+        grid-column: span 1 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .cal-month {
+        padding: 1mm !important;
+        border-radius: 2px !important;
+        box-shadow: none !important;
+      }
+
+      .cal-month-name { font-size: 7pt !important; }
+
+      .cal-grid {
+        font-size: 5.5pt !important;
+        gap: 0 !important;
+      }
+
+      .cal-grid > span {
+        padding: 0 1px !important;
+        min-width: 0 !important;
+      }
+
+      /* Hide footer and anything else */
+      .cal-footer { display: none !important; }
+      section:not(#quarters-section):not(.cal-hero):not(#notable-section) { display: none !important; }
+
+      /* \u2500\u2500 Notable dates: compact inline list \u2500\u2500 */
+      .notable-section {
+        background-color: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 0.8mm 1.5mm !important;
+        margin: 0 !important;
+        color: #000 !important;
+      }
+
+      .notable-heading {
+        font-size: 6pt !important;
+        margin-bottom: 0.5mm !important;
+        color: #000 !important;
+        line-height: 1.2 !important;
+      }
+
+      /* All columns flow as one wrapping line */
+      .notable-columns {
+        display: block !important;
+        line-height: 1.35 !important;
+      }
+
+      .notable-divider { display: none !important; }
+
+      .notable-col {
+        display: inline !important;
+      }
+
+      .notable-entry {
+        display: inline !important;
+        padding: 0 !important;
+        line-height: 1.35 !important;
+      }
+
+      .notable-entry::after {
+        content: ' \B7  ';
+        color: #bbb;
+      }
+
+      .notable-entry:last-child::after {
+        content: '';
+      }
+
+      .notable-date {
+        font-size: 5.5pt !important;
+        width: auto !important;
+        color: #333 !important;
+        font-weight: 600;
+      }
+
+      .notable-date.cal-red {
+        color: #c00 !important;
+      }
+
+      .notable-desc {
+        font-size: 5.5pt !important;
+        color: #555 !important;
+        margin-left: 1px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="pkt-layout">
+    <main id="root"></main>
+  </div>
+
+  <script>
+    const MONTHS_NO = ['Januar','Februar','Mars','April','Mai','Juni',
+                       'Juli','August','September','Oktober','November','Desember'];
+    const DAYS_NO   = ['Ma','Ti','On','To','Fr','Lø','Sø'];
+    const MABBR_NO  = ['jan','feb','mar','apr','mai','jun',
+                       'jul','aug','sep','okt','nov','des'];
+
+    // ── Date helpers ──────────────────────────────────────────────────────────
+
+    function isoWeekday(d) { const w = d.getDay(); return w === 0 ? 7 : w; }
+
+    function addDays(d, n) {
+      const r = new Date(d);
+      r.setDate(r.getDate() + n);
+      return r;
+    }
+
+    function dateKey(d) {
+      return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    }
+
+    function isoWeekNumber(d) {
+      const tmp = new Date(d);
+      tmp.setHours(0, 0, 0, 0);
+      tmp.setDate(tmp.getDate() + 4 - (tmp.getDay() || 7));
+      const yearStart = new Date(tmp.getFullYear(), 0, 1);
+      return Math.ceil(((tmp - yearStart) / 86400000 + 1) / 7);
+    }
+
+    // ── Easter Sunday (Anonymous Gregorian / Computus) ────────────────────────
+
+    function easter(year) {
+      const a = year % 19;
+      const b = Math.floor(year / 100), c = year % 100;
+      const d = Math.floor(b / 4),      e = b % 4;
+      const f = Math.floor((b + 8) / 25);
+      const g = Math.floor((b - f + 1) / 3);
+      const h = (19 * a + b - d - g + 15) % 30;
+      const i = Math.floor(c / 4), k = c % 4;
+      const l = (32 + 2 * e + 2 * i - h - k) % 7;
+      const m = Math.floor((a + 11 * h + 22 * l) / 451);
+      const month = Math.floor((h + l - 7 * m + 114) / 31);
+      const day   = (h + l - 7 * m + 114) % 31 + 1;
+      return new Date(year, month - 1, day);
+    }
+
+    // ── Weekday helpers ───────────────────────────────────────────────────────
+
+    /** n-th occurrence of weekday (1=Mon..7=Sun) in a month (1-based). */
+    function nthWday(year, month, wday, n) {
+      const first  = new Date(year, month - 1, 1);
+      const offset = (wday - isoWeekday(first) + 7) % 7;
+      return new Date(year, month - 1, 1 + offset + (n - 1) * 7);
+    }
+
+    /** Last occurrence of weekday (1=Mon..7=Sun) in a month (1-based). */
+    function lastWday(year, month, wday) {
+      const last = new Date(year, month, 0);           // last day of month
+      const diff = (isoWeekday(last) - wday + 7) % 7;
+      return new Date(year, month - 1, last.getDate() - diff);
+    }
+
+    // ── Calendar data builder ─────────────────────────────────────────────────
+
+    function buildCalendar(year) {
+      const e     = easter(year);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Public holidays (røde dager)
+      const holidaysArr = [
+        [new Date(year, 0, 1),   'Første nyttårsdag'],
+        [addDays(e, -3),         'Skjærtorsdag'],
+        [addDays(e, -2),         'Langfredag'],
+        [new Date(e),            '1. påskedag'],
+        [addDays(e, 1),          '2. påskedag'],
+        [new Date(year, 4, 1),   'Arbeidernes dag'],
+        [addDays(e, 39),         'Kristi himmelfartsdag'],
+        [new Date(year, 4, 17),  'Grunnlovsdagen'],
+        [addDays(e, 49),         '1. pinsedag'],
+        [addDays(e, 50),         '2. pinsedag'],
+        [new Date(year, 11, 25), '1. juledag'],
+        [new Date(year, 11, 26), '2. juledag'],
+      ];
+      const holidays = new Map(holidaysArr.map(([d, n]) => [dateKey(d), n]));
+
+      // Computed special dates
+      const morsdag     = nthWday(year, 2, 7, 2);
+      const farsdag     = nthWday(year, 11, 7, 2);
+      const sommerStart = lastWday(year, 3, 7);
+      const sommerSlutt = lastWday(year, 10, 7);
+      const fastelavn   = addDays(e, -49);
+      const botsdag     = lastWday(year, 10, 7);
+      const nov27       = new Date(year, 10, 27);
+      const advent1     = addDays(nov27, (7 - isoWeekday(nov27)) % 7);
+
+      // Override holiday names in the notable list
+      const notableNameOverrides = {
+        [dateKey(addDays(e, 39))]:        'Kristi himmelfartsdag',
+        [dateKey(new Date(year, 4, 17))]: 'Grunnlovsdagen 1814',
+      };
+
+      // All notable dates: [Date, description, isRed]
+      const notable = [
+        ...holidaysArr.map(([d, name]) => [d, notableNameOverrides[dateKey(d)] ?? name, true]),
+        [addDays(e, -7),            'Palmesøndag',                                     true],
+        [new Date(year, 0, 21),     'Prinsesse Ingrid Alexandra, ' + (year - 2004) + ' år', false],
+        [new Date(year, 1, 6),      'Samefolkets dag',                                 false],
+        [morsdag,                   'Morsdag',                                         false],
+        [new Date(year, 1, 14),     'Valentinsdag',                                    false],
+        [fastelavn,                 'Fastelavn',                                       false],
+        [new Date(year, 1, 21),     'Kong Harald, ' + (year - 1937) + ' år',           false],
+        [new Date(year, 2, 8),      'Kvinnedagen',                                     false],
+        [new Date(year, 2, 20),     'Vårjevndøgn',                                     false],
+        [sommerStart,               'Sommertid start',                                 false],
+        [addDays(e, -1),            'Påskeaften',                                      false],
+        [new Date(year, 4, 8),      'Frigjøringsdagen 1945',                           false],
+        [addDays(e, 48),            'Pinseaften',                                      false],
+        [new Date(year, 5, 7),      'Unionsoppløsning 1905',                           false],
+        [new Date(year, 5, 21),     'Sommersolverv',                                   false],
+        [new Date(year, 5, 23),     'Sankthansaften',                                  false],
+        [new Date(year, 6, 4),      'Dronning Sonja, ' + (year - 1937) + ' år',        false],
+        [new Date(year, 6, 20),     'Kronprins Haakon, ' + (year - 1973) + ' år',      false],
+        [new Date(year, 6, 29),     'Olsokdagen',                                      false],
+        [new Date(year, 7, 19),     'Kronprinsesse Mette-Marit, ' + (year - 1973) + ' år', false],
+        [new Date(year, 8, 23),     'Høstjevndøgn',                                    false],
+        [botsdag,                   'Bots- og bededag',                                false],
+        [sommerSlutt,               'Sommertid slutt',                                 false],
+        [new Date(year, 9, 31),     'Halloween',                                       false],
+        [new Date(year, 10, 1),     'Allehelgensdag',                                  false],
+        [farsdag,                   'Farsdag',                                         false],
+        [advent1,                   '1. søndag i advent',                              false],
+        [addDays(advent1, 7),       '2. søndag i advent',                              false],
+        [new Date(year, 11, 13),    'Luciadagen',                                      false],
+        [addDays(advent1, 14),      '3. søndag i advent',                              false],
+        [addDays(advent1, 21),      '4. søndag i advent',                              false],
+        [new Date(year, 11, 21),    'Vintersolverv',                                   false],
+        [new Date(year, 11, 24),    'Julaften',                                        false],
+        [new Date(year, 11, 31),    'Nyttårsaften',                                    false],
+      ];
+      notable.sort((a, b) => a[0] - b[0]);
+
+      const notableLookup = new Map(notable.map(([d, name]) => [dateKey(d), name]));
+
+      // Eves of moveable (Easter-based) holidays
+      const preHolidays = new Set([
+        dateKey(addDays(e, -4)),  // Wednesday of Holy Week (day before Skjærtorsdag)
+        dateKey(addDays(e, -1)),  // Påskeaften
+        dateKey(addDays(e, 38)), // Day before Kristi himmelfartsdag
+        dateKey(addDays(e, 48)), // Pinseaften
+      ]);
+
+      // Build month grids
+      const months = Array.from({ length: 12 }, (_, i) =>
+        buildMonth(year, i + 1, holidays, notableLookup, preHolidays, today)
+      );
+
+      // Split notable into 3 columns
+      const third = Math.max(Math.ceil(notable.length / 3), 1);
+      const notableColumns = [];
+      for (let i = 0; i < notable.length; i += third) notableColumns.push(notable.slice(i, i + third));
+
+      const pad2 = n => String(n).padStart(2, '0');
+      const todayStr = pad2(today.getDate()) + '.' + pad2(today.getMonth() + 1) + '.' + today.getFullYear();
+
+      return { year, months, notableColumns, todayStr };
+    }
+
+    function buildMonth(year, month, holidays, notableLookup, preHolidays, today) {
+      const first   = new Date(year, month - 1, 1);
+      const lastDay = new Date(year, month, 0);
+      const monday  = addDays(first, -(isoWeekday(first) - 1));
+
+      const weeks = [];
+      let cur = new Date(monday);
+
+      while (cur <= lastDay) {
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+          const day = addDays(cur, i);
+          if (day.getMonth() === month - 1 && day.getFullYear() === year) {
+            const key     = dateKey(day);
+            const isRed    = isoWeekday(day) === 7 || holidays.has(key);
+            const isSat    = isoWeekday(day) === 6 && !holidays.has(key);
+            const isPreRed = !isRed && preHolidays.has(key);
+            const isToday  = day.getFullYear() === today.getFullYear()
+                          && day.getMonth()    === today.getMonth()
+                          && day.getDate()     === today.getDate();
+            const tooltip  = holidays.get(key) || notableLookup.get(key) || (preHolidays.has(key) ? 'Dag f\u00f8r bevegelig helligdag' : '');
+            days.push({ day: day.getDate(), isRed, isSat, isPreRed, isToday, tooltip });
+          } else {
+            days.push(null);
+          }
+        }
+        weeks.push({ number: isoWeekNumber(cur), days });
+        cur = addDays(cur, 7);
+      }
+
+      while (weeks.length < 6) weeks.push({ number: '', days: Array(7).fill(null) });
+      return { name: MONTHS_NO[month - 1], weeks };
+    }
+
+    // ── Renderer ──────────────────────────────────────────────────────────────
+
+    const esc = s => String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+    const QUARTER_LABELS  = ['1. kvartal', '2. kvartal', '3. kvartal', '4. kvartal'];
+    const QUARTER_CLASSES = ['q1', 'q2', 'q3', 'q4'];
+
+    function renderCalendar(year) {
+      const data = buildCalendar(year);
+      document.title = 'Kalender ' + year;
+      let html = '';
+
+      // Hero
+      html += '<section class="cal-hero py-size-40 py-size-64--tablet-up">';
+      html += '<div class="pkt-container">';
+      html += '<div class="year-nav mb-size-4">';
+      html += '<button class="year-nav-btn" onclick="changeYear(-1)" aria-label="Forrige år">&#9664;</button>';
+      html += '<h1 class="pkt-txt-40 pkt-txt-54--tablet-up pkt-font-bold">Kalender\u00a0<span class="year-label" id="year-label" onclick="startYearEdit()" title="Klikk for å endre år">' + year + '</span></h1>';
+      html += '<button class="year-nav-btn" onclick="changeYear(1)" aria-label="Neste år">&#9654;</button>';
+      html += '</div>';
+      html += '<p class="cal-subtitle pkt-txt-16 pkt-txt-18--tablet-up pkt-font-medium mb-size-16">Norsk kalender med helligdager og merkedager</p>';
+      html += '<button class="toggle-btn pkt-txt-14" onclick="toggleDark()" id="theme-toggle">mørk modus</button>';
+      html += '</div></section>';
+
+      // Month grid by quarters
+      html += '<section id="quarters-section" class="pkt-container py-size-32">';
+      for (let q = 0; q < 4; q++) {
+        html += '<div class="cal-quarter p-size-16 p-size-24--tablet-up mb-size-24 cal-quarter--' + QUARTER_CLASSES[q] + '">';
+        html += '<div class="cal-quarter-label pkt-txt-14-medium mb-size-12">' + QUARTER_LABELS[q] + '</div>';
+        html += '<div class="pkt-grid pkt-grid--gap-size-16">';
+
+        for (const month of data.months.slice(q * 3, (q + 1) * 3)) {
+          html += '<div class="pkt-cell pkt-cell--span12 pkt-cell--span4-tablet-up"><div class="cal-month">';
+          html += '<div class="pkt-txt-center mb-size-8"><span class="cal-month-name pkt-txt-16-medium">' + month.name + '</span></div>';
+          html += '<div class="cal-grid pkt-txt-14">';
+          html += '<span class="cal-wk cal-day-header"></span>';
+
+          DAYS_NO.forEach(function(d, i) {
+            const cls = i === 5 ? ' cal-sat' : i === 6 ? ' cal-red' : '';
+            html += '<span class="cal-day-header' + cls + '">' + d + '</span>';
+          });
+
+          for (const week of month.weeks) {
+            html += '<span class="cal-wk">' + week.number + '</span>';
+            for (const day of week.days) {
+              if (day) {
+                let cls = 'cal-day-wrap';
+                if (day.isToday)       cls += ' cal-today';
+                else if (day.isRed)    cls += ' cal-red';
+                else if (day.isSat)    cls += ' cal-sat';
+                if (day.isPreRed)      cls += ' cal-pre-holiday';
+                const tip = day.tooltip ? ' data-tooltip="' + esc(day.tooltip) + '"' : '';
+                const content = day.isPreRed
+                  ? '<span class="pre-dot">' + day.day + '</span>'
+                  : day.day;
+                html += '<span class="' + cls + '"' + tip + '>' + content + '</span>';
+              } else {
+                html += '<span></span>';
+              }
+            }
+          }
+          html += '</div></div></div>';
+        }
+        html += '</div></div>';
+      }
+      html += '</section>';
+
+      // Notable dates
+      html += '<section id="notable-section" class="pkt-container pb-size-32"><div class="notable-section p-size-24 p-size-32--tablet-up">';
+      html += '<h2 class="notable-heading pkt-txt-20-medium pkt-txt-24-medium--tablet-up mb-size-16">Merkedager ' + year + '</h2>';
+      html += '<div class="notable-columns pkt-txt-14">';
+
+      data.notableColumns.forEach(function(col, colIdx) {
+        if (colIdx > 0) html += '<div class="notable-divider"></div>';
+        html += '<div class="notable-col">';
+        for (const [d, desc, isRed] of col) {
+          const redCls = isRed ? ' cal-red' : '';
+          html += '<div class="notable-entry">';
+          html += '<span class="notable-date' + redCls + '">' + d.getDate() + '. ' + MABBR_NO[d.getMonth()] + '</span>';
+          html += '<span class="notable-desc">' + esc(desc) + '</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+
+      html += '</div></div></section>';
+
+      // Footer
+      html += '<div class="pkt-txt-center mb-size-32"><p class="cal-footer pkt-txt-12">Generert ' + data.todayStr + ' · Laget med Claude, GitHub Copilot og Punkt ❤️</p></div>';
+
+      document.getElementById('root').innerHTML = html;
+
+      // Re-apply theme label after innerHTML wipe
+      const isDark = document.body.getAttribute('data-mode') === 'dark';
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = isDark ? 'lys modus' : 'mørk modus';
+    }
+
+    // ── Year navigation ───────────────────────────────────────────────────────
+
+    let currentYear = new Date().getFullYear();
+
+    function setYearUrl(year) {
+      const params = new URLSearchParams(location.search);
+      params.set('year', year);
+      history.replaceState(null, '', '?' + params.toString() + location.hash);
+    }
+
+    function changeYear(delta) {
+      currentYear += delta;
+      setYearUrl(currentYear);
+      renderCalendar(currentYear);
+    }
+
+    function startYearEdit() {
+      const label = document.getElementById('year-label');
+      if (!label) return;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'year-input pkt-txt-40 pkt-txt-54--tablet-up pkt-font-bold';
+      input.value = currentYear;
+      input.min = 1;
+      input.max = 9999;
+      input.setAttribute('aria-label', 'År');
+      label.replaceWith(input);
+      input.select();
+
+      function commit() {
+        const v = parseInt(input.value, 10);
+        if (!isNaN(v) && v > 0) {
+          currentYear = v;
+          setYearUrl(currentYear);
+          renderCalendar(currentYear);
+        } else {
+          renderCalendar(currentYear); // restore without change
+        }
+      }
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { renderCalendar(currentYear); }
+      });
+      input.addEventListener('blur', commit);
+    }
+
+    // ── Dark mode ─────────────────────────────────────────────────────────────
+
+    function applyTheme(dark) {
+      if (dark) {
+        document.body.setAttribute('data-mode', 'dark');
+      } else {
+        document.body.removeAttribute('data-mode');
+      }
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = dark ? 'lys modus' : 'mørk modus';
+    }
+
+    function toggleDark() {
+      const isDark = document.body.getAttribute('data-mode') === 'dark';
+      location.hash = isDark ? 'light' : 'dark';
+    }
+
+    function readHash() {
+      const hash = location.hash.replace('#', '');
+      if (hash === 'dark' || hash === 'light') applyTheme(hash === 'dark');
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+
+    const urlYear = parseInt(new URLSearchParams(location.search).get('year'), 10);
+    if (!isNaN(urlYear) && urlYear > 0) currentYear = urlYear;
+
+    renderCalendar(currentYear);
+    readHash();
+    window.addEventListener('hashchange', readHash);
+
+    // Show nav buttons on touch (toggle until next touch outside)
+    document.addEventListener('touchstart', function(e) {
+      const hero = document.querySelector('.cal-hero');
+      if (!hero) return;
+      if (hero.contains(e.target)) {
+        hero.classList.add('touch-active');
+      } else {
+        hero.classList.remove('touch-active');
+      }
+    }, { passive: true });
+  </script>
+</body>
+</html>
